@@ -1,0 +1,17 @@
+package io.github.winnpixie.wun.client;
+
+import io.github.winnpixie.wun.shared.Packet;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+public class ClientDisconnectPacket extends Packet {
+    @Override
+    public void serialize(DataOutputStream output) throws IOException {
+    }
+
+    public static ClientDisconnectPacket deserialize(DataInputStream input) throws IOException {
+        return new ClientDisconnectPacket();
+    }
+}
