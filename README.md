@@ -1,6 +1,6 @@
 # wun
 
-winnpixie's unreliable networking
+winnpixie's unreliable networking - a deep dive into working with UDP in Java
 
 # Spec
 
