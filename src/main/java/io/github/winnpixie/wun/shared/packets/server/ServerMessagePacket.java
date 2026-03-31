@@ -1,4 +1,4 @@
-package io.github.winnpixie.wun.client;
+package io.github.winnpixie.wun.shared.packets.server;
 
 import io.github.winnpixie.wun.shared.Packet;
 
@@ -6,10 +6,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class ClientMessagePacket extends Packet {
+public class ServerMessagePacket extends Packet {
     private final String message;
 
-    public ClientMessagePacket(String message) {
+    public ServerMessagePacket(DataInputStream input) throws IOException {
+        this.message = input.readUTF();
+    }
+
+    public ServerMessagePacket(String message) {
         if (message.length() > 512) {
             message = message.substring(0, 512);
         }
@@ -24,9 +28,5 @@ public class ClientMessagePacket extends Packet {
     @Override
     public void serialize(DataOutputStream output) throws IOException {
         output.writeUTF(message);
-    }
-
-    public static ClientMessagePacket deserialize(DataInputStream input) throws IOException {
-        return new ClientMessagePacket(input.readUTF());
     }
 }

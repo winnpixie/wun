@@ -1,7 +1,7 @@
-package io.github.winnpixie.wun.shared;
+package io.github.winnpixie.wun.program;
 
-import io.github.winnpixie.wun.client.ClientEntrypoint;
-import io.github.winnpixie.wun.server.ServerEntrypoint;
+import io.github.winnpixie.wun.program.client.ClientEntrypoint;
+import io.github.winnpixie.wun.program.server.ServerEntrypoint;
 
 public class Entrypoint {
     public static void main(String[] args) {

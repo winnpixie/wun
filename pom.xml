@@ -23,7 +23,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>io.github.winnpixie.wun.shared.Entrypoint</mainClass>
+                            <mainClass>io.github.winnpixie.wun.program.Entrypoint</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

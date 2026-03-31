@@ -4,6 +4,6 @@ import java.io.DataInputStream;
 import java.io.IOException;
 
 @FunctionalInterface
-public interface PacketHandler<R extends Packet> {
-    R process(DataInputStream input) throws IOException;
+public interface PacketDeserializer<R extends Packet> {
+    R deserialize(DataInputStream input) throws IOException;
 }

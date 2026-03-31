@@ -1,17 +1,14 @@
 package io.github.winnpixie.wun.shared;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
 public abstract class Packet {
-    private long peerId;
-
-    public long getPeerId() {
-        return peerId;
+    protected Packet(DataInputStream input) throws IOException {
     }
 
-    public void setPeerId(long peerId) {
-        this.peerId = peerId;
+    protected Packet() {
     }
 
     public abstract void serialize(DataOutputStream output) throws IOException;
