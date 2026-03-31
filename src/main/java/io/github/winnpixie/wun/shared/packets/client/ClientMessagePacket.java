@@ -1,16 +1,16 @@
 package io.github.winnpixie.wun.shared.packets.client;
 
+import io.github.winnpixie.wun.shared.IOHelper;
 import io.github.winnpixie.wun.shared.Packet;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class ClientMessagePacket extends Packet {
     private final String message;
 
-    public ClientMessagePacket(DataInputStream input) throws IOException {
-        this.message = input.readUTF();
+    public ClientMessagePacket(ByteBuffer buffer) throws IOException {
+        this.message = IOHelper.getString(buffer);
     }
 
     public ClientMessagePacket(String message) {
@@ -26,7 +26,7 @@ public class ClientMessagePacket extends Packet {
     }
 
     @Override
-    public void serialize(DataOutputStream output) throws IOException {
-        output.writeUTF(message);
+    public void serialize(ByteBuffer buffer) throws IOException {
+        IOHelper.putString(buffer, message);
     }
 }

@@ -1,15 +1,14 @@
 package io.github.winnpixie.wun.shared;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public abstract class Packet {
-    protected Packet(DataInputStream input) throws IOException {
+    protected Packet(ByteBuffer buffer) throws IOException {
     }
 
     protected Packet() {
     }
 
-    public abstract void serialize(DataOutputStream output) throws IOException;
+    public abstract void serialize(ByteBuffer buffer) throws IOException;
 }

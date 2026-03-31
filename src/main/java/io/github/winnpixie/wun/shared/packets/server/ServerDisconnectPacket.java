@@ -1,16 +1,16 @@
 package io.github.winnpixie.wun.shared.packets.server;
 
+import io.github.winnpixie.wun.shared.IOHelper;
 import io.github.winnpixie.wun.shared.Packet;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class ServerDisconnectPacket extends Packet {
     private final String reason;
 
-    public ServerDisconnectPacket(DataInputStream input) throws IOException {
-        this.reason = input.readUTF();
+    public ServerDisconnectPacket(ByteBuffer buffer) throws IOException {
+        this.reason = IOHelper.getString(buffer);
     }
 
     public ServerDisconnectPacket(String reason) {
@@ -26,7 +26,7 @@ public class ServerDisconnectPacket extends Packet {
     }
 
     @Override
-    public void serialize(DataOutputStream output) throws IOException {
-        output.writeUTF(reason);
+    public void serialize(ByteBuffer buffer) throws IOException {
+        IOHelper.putString(buffer, reason);
     }
 }

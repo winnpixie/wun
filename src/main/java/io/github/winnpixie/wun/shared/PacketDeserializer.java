@@ -1,9 +1,9 @@
 package io.github.winnpixie.wun.shared;
 
-import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 @FunctionalInterface
 public interface PacketDeserializer<R extends Packet> {
-    R deserialize(DataInputStream input) throws IOException;
+    R deserialize(ByteBuffer buffer) throws IOException;
 }

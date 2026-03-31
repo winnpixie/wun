@@ -1,6 +1,6 @@
 package io.github.winnpixie.wun.shared;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -137,23 +137,23 @@ public class Host {
         }
 
         buffer.flip();
-        try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(buffer.array()))) {
-            int peerIdIn = input.readInt();
-            byte packetIdIn = input.readByte();
-            int length = input.readInt();
-            if (length > PACKET_MAX_PAYLOAD_SIZE) {
-                // TODO: Implement packet defragmentation
-                return;
-            }
 
-            PacketDeserializer<? extends Packet> deserializer = idToPacket.get(packetIdIn);
-            if (deserializer == null) {
-                // unknown packet ???
-                processing = false;
-            } else {
-                Packet packetObj = deserializer.deserialize(input);
-                packetHandler.get(packetIdIn).accept(new Peer(peerIdIn, (InetSocketAddress) addressIn), packetObj);
-            }
+        int peerIdIn = buffer.getInt();
+        byte packetIdIn = buffer.get();
+        int length = buffer.getInt();
+        if (length > PACKET_MAX_PAYLOAD_SIZE) {
+            // TODO: Implement packet defragmentation
+            return;
+        }
+
+        PacketDeserializer<? extends Packet> deserializer = idToPacket.get(packetIdIn);
+        if (deserializer == null) {
+            // unknown packet ???
+            processing = false;
+        } else {
+            Packet packetObj = deserializer.deserialize(buffer);
+            packetHandler.get(packetIdIn).accept(new Peer(peerIdIn, (InetSocketAddress) addressIn), packetObj);
+
         }
     }
 
@@ -168,31 +168,23 @@ public class Host {
         Packet packet = queued.packet();
 
         ByteBuffer buffer = ByteBuffer.allocate(PACKET_MAX_SIZE);
-        buffer.clear();
 
         // HEADER
         buffer.putInt(peerId);
         buffer.put(packetToId.get(packet.getClass()));
 
-        try (ByteArrayOutputStream payloadStream = new ByteArrayOutputStream();
-             DataOutputStream stream = new DataOutputStream(payloadStream)) {
-            packet.serialize(stream);
+        ByteBuffer payloadBuffer = ByteBuffer.allocate(PACKET_MAX_PAYLOAD_SIZE);
+        packet.serialize(payloadBuffer);
 
-            byte[] payload = payloadStream.toByteArray();
-            if (payload.length > PACKET_MAX_PAYLOAD_SIZE) {
-                // TODO: Implement fragmentation
-                return;
-            }
+        // HEADER
+        buffer.putInt(payloadBuffer.position() + 1);
 
-            // HEADER
-            buffer.putInt(payload.length);
+        // CONTENT
+        payloadBuffer.flip();
+        buffer.put(payloadBuffer);
 
-            // CONTENT
-            buffer.put(payload);
-
-            buffer.flip();
-            keyChannel.send(buffer, queued.recipient());
-        }
+        buffer.flip();
+        keyChannel.send(buffer, queued.recipient());
     }
 
     public void stop() {

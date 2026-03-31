@@ -1,21 +1,21 @@
 package io.github.winnpixie.wun.shared.packets.server;
 
+import io.github.winnpixie.wun.shared.IOHelper;
 import io.github.winnpixie.wun.shared.Packet;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class ServerMessagePacket extends Packet {
     private final String message;
 
-    public ServerMessagePacket(DataInputStream input) throws IOException {
-        this.message = input.readUTF();
+    public ServerMessagePacket(ByteBuffer buffer) throws IOException {
+        this.message = IOHelper.getString(buffer);
     }
 
     public ServerMessagePacket(String message) {
-        if (message.length() > 512) {
-            message = message.substring(0, 512);
+        if (message.length() > 1024) {
+            message = message.substring(0, 1024);
         }
 
         this.message = message;
@@ -26,7 +26,7 @@ public class ServerMessagePacket extends Packet {
     }
 
     @Override
-    public void serialize(DataOutputStream output) throws IOException {
-        output.writeUTF(message);
+    public void serialize(ByteBuffer buffer) throws IOException {
+        IOHelper.putString(buffer, message);
     }
 }

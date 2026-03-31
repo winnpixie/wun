@@ -1,5 +1,9 @@
 package io.github.winnpixie.wun.shared;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 public class IOHelper {
     private IOHelper() {
     }
@@ -19,5 +23,27 @@ public class IOHelper {
         }
 
         return result;
+    }
+
+    public static void putString(ByteBuffer buffer, String value) {
+        putString(buffer, value, StandardCharsets.UTF_8);
+    }
+
+    public static void putString(ByteBuffer buffer, String value, Charset charset) {
+        byte[] data = value.getBytes(charset);
+        buffer.putInt(data.length);
+        buffer.put(data);
+    }
+
+    public static String getString(ByteBuffer buffer) {
+        return getString(buffer, StandardCharsets.UTF_8);
+    }
+
+    public static String getString(ByteBuffer buffer, Charset charset) {
+        int len = buffer.getInt();
+        byte[] data = new byte[len];
+
+        buffer.get(data, 0, len);
+        return new String(data, charset);
     }
 }

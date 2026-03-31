@@ -2,18 +2,17 @@ package io.github.winnpixie.wun.shared.packets.client;
 
 import io.github.winnpixie.wun.shared.Packet;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class ClientHeartbeatPacket extends Packet {
-    public ClientHeartbeatPacket(DataInputStream input) throws IOException {
+    public ClientHeartbeatPacket(ByteBuffer buffer) throws IOException {
     }
 
     public ClientHeartbeatPacket() {
     }
 
     @Override
-    public void serialize(DataOutputStream output) throws IOException {
+    public void serialize(ByteBuffer buffer) throws IOException {
     }
 }
