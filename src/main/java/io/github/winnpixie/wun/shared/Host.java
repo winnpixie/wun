@@ -16,49 +16,22 @@ import java.util.function.BiConsumer;
 
 public class Host {
     private static final int PACKET_MAX_SIZE = 1500 - 8 - 20; // mtu(1500) - udp_header(8) - ip_header(20)
-    private static final int PACKET_HEADER_SIZE = 4 + 1 + 4; //  peer_id(4) + packet_id(1) + payload_length(4)
+    private static final int PACKET_HEADER_SIZE = 1 + 4; // packet_id(1) + payload_length(4)
     private static final int PACKET_MAX_PAYLOAD_SIZE = PACKET_MAX_SIZE - PACKET_HEADER_SIZE;
 
     private final Map<Byte, PacketDeserializer<? extends Packet>> idToPacket = new HashMap<>();
     private final Map<Class<? extends Packet>, Byte> packetToId = new HashMap<>();
-    private final Map<Byte, BiConsumer<Peer, Packet>> packetHandler = new HashMap<>();
-    private final Deque<QueuedPacket> packetWriteQueue = new ConcurrentLinkedDeque<>();
+
+    private final Map<Byte, BiConsumer<SocketAddress, ? extends Packet>> handlers = new HashMap<>();
+    private final Deque<QueuedPacket> queue = new ConcurrentLinkedDeque<>();
 
     private final DatagramChannel channel;
     private final Selector selector;
 
     private boolean processing;
-    private InetSocketAddress address;
+    private SocketAddress remote;
 
-    private int peerId = -1;
-
-    /**
-     * Configures this {@link Host} to run in server mode.
-     *
-     * @param port
-     * @throws IOException
-     */
-    public Host(int port) throws IOException {
-        this();
-
-        channel.bind(new InetSocketAddress(port));
-    }
-
-    /**
-     * Configures this {@link Host} to run in client mode.
-     *
-     * @param address
-     * @throws IOException
-     */
-    public Host(InetSocketAddress address) throws IOException {
-        this();
-
-        this.address = address;
-
-        channel.connect(this.address);
-    }
-
-    private Host() throws IOException {
+    public Host() throws IOException {
         this.channel = DatagramChannel.open();
         this.selector = Selector.open();
 
@@ -66,31 +39,63 @@ public class Host {
         channel.register(selector, channel.validOps());
     }
 
+    public DatagramChannel getChannel() {
+        return channel;
+    }
+
     public boolean isProcessing() {
         return processing;
     }
 
-    public int getPeerId() {
-        return peerId;
+    public void bind(int port) throws IOException {
+        channel.bind(new InetSocketAddress(port));
     }
 
-    public void setPeerId(int peerId) {
-        this.peerId = peerId;
+    public void connect(SocketAddress remote) throws IOException {
+        this.remote = remote;
+        channel.connect(remote);
     }
 
-    public <T extends Packet> void registerPacket(byte id, Class<T> cls, PacketDeserializer<T> supplier, BiConsumer<Peer, T> handler) {
+    public <T extends Packet> void registerPacket(byte id, Class<T> cls, PacketDeserializer<T> supplier, BiConsumer<SocketAddress, T> handler) {
         idToPacket.put(id, supplier);
         packetToId.put(cls, id);
-        packetHandler.put(id, (BiConsumer<Peer, Packet>) handler);
+        handlers.put(id, handler);
     }
 
-    public <T extends Packet> void sendPacket(T packet) {
-        sendPacket(packet, address);
+    public <T extends Packet> void send(T packet) {
+        send(packet, remote);
     }
 
-    public <T extends Packet> void sendPacket(T packet, InetSocketAddress... recipients) {
-        for (InetSocketAddress recipient : recipients) {
-            packetWriteQueue.add(new QueuedPacket(packet, recipient));
+    public <T extends Packet> void send(T packet, SocketAddress... recipients) {
+        for (SocketAddress recipient : recipients) {
+            queue.add(new QueuedPacket(packet, recipient));
+        }
+    }
+
+    public <T extends Packet> void sendNow(T packet, SocketAddress... recipients) throws IOException {
+        sendNow(packet, channel, recipients);
+    }
+
+    public <T extends Packet> void sendNow(T packet, DatagramChannel channel, SocketAddress... recipients) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(PACKET_MAX_SIZE);
+
+        // HEADER
+        buffer.put(packetToId.get(packet.getClass()));
+
+        // TODO: Implement packet fragmentation
+        ByteBuffer payloadBuffer = ByteBuffer.allocate(PACKET_MAX_PAYLOAD_SIZE);
+        packet.serialize(payloadBuffer);
+        payloadBuffer.flip();
+
+        // HEADER
+        buffer.putInt(payloadBuffer.remaining());
+
+        // CONTENT
+        buffer.put(payloadBuffer);
+
+        for (SocketAddress recipient : recipients) {
+            buffer.flip();
+            channel.send(buffer, recipient);
         }
     }
 
@@ -98,7 +103,7 @@ public class Host {
         this.processing = true;
 
         while (processing) {
-            int queue = selector.select();
+            int queue = selector.selectNow();
             if (queue < 1) {
                 continue;
             }
@@ -138,10 +143,9 @@ public class Host {
 
         buffer.flip();
 
-        int peerIdIn = buffer.getInt();
         byte packetIdIn = buffer.get();
-        int length = buffer.getInt();
-        if (length > PACKET_MAX_PAYLOAD_SIZE) {
+        int lengthIn = buffer.getInt();
+        if (lengthIn > PACKET_MAX_PAYLOAD_SIZE) {
             // TODO: Implement packet defragmentation
             return;
         }
@@ -152,42 +156,30 @@ public class Host {
             processing = false;
         } else {
             Packet packetObj = deserializer.deserialize(buffer);
-            packetHandler.get(packetIdIn).accept(new Peer(peerIdIn, (InetSocketAddress) addressIn), packetObj);
-
+            ((BiConsumer<SocketAddress, Packet>) handlers.get(packetIdIn))
+                    .accept(addressIn, packetObj);
         }
     }
 
     private void write(SelectionKey key) throws IOException {
-        if (packetWriteQueue.isEmpty()) {
+        if (queue.isEmpty()) {
             return;
         }
 
-        DatagramChannel keyChannel = (DatagramChannel) key.channel();
+        QueuedPacket queued = queue.remove();
+        sendNow(queued.packet(), (DatagramChannel) key.channel(), queued.recipient());
+    }
 
-        QueuedPacket queued = packetWriteQueue.remove();
-        Packet packet = queued.packet();
-
-        ByteBuffer buffer = ByteBuffer.allocate(PACKET_MAX_SIZE);
-
-        // HEADER
-        buffer.putInt(peerId);
-        buffer.put(packetToId.get(packet.getClass()));
-
-        ByteBuffer payloadBuffer = ByteBuffer.allocate(PACKET_MAX_PAYLOAD_SIZE);
-        packet.serialize(payloadBuffer);
-
-        // HEADER
-        buffer.putInt(payloadBuffer.position() + 1);
-
-        // CONTENT
-        payloadBuffer.flip();
-        buffer.put(payloadBuffer);
-
-        buffer.flip();
-        keyChannel.send(buffer, queued.recipient());
+    public void flush() throws IOException {
+        while (!queue.isEmpty()) {
+            QueuedPacket queued = queue.remove();
+            sendNow(queued.packet(), queued.recipient());
+        }
     }
 
     public void stop() {
         processing = false;
+
+        queue.clear();
     }
 }

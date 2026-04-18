@@ -1,20 +1,20 @@
 package io.github.winnpixie.wun.program.server;
 
-import io.github.winnpixie.wun.shared.Peer;
-
 public class Connection {
-    private final Peer peer;
-
+    private String userName;
     private long heartBeat;
 
-    public Connection(Peer peer) {
-        this.peer = peer;
-
+    Connection(String userName) {
+        this.userName = userName;
         this.heartBeat = System.currentTimeMillis();
     }
 
-    public Peer getPeer() {
-        return peer;
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public long getHeartBeat() {

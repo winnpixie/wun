@@ -3,21 +3,16 @@ package io.github.winnpixie.wun.shared.packets.server;
 import io.github.winnpixie.wun.shared.IOHelper;
 import io.github.winnpixie.wun.shared.Packet;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class ServerMessagePacket extends Packet {
     private final String message;
 
-    public ServerMessagePacket(ByteBuffer buffer) throws IOException {
+    public ServerMessagePacket(ByteBuffer buffer) {
         this.message = IOHelper.getString(buffer);
     }
 
     public ServerMessagePacket(String message) {
-        if (message.length() > 1024) {
-            message = message.substring(0, 1024);
-        }
-
         this.message = message;
     }
 
@@ -26,7 +21,7 @@ public class ServerMessagePacket extends Packet {
     }
 
     @Override
-    public void serialize(ByteBuffer buffer) throws IOException {
+    public void serialize(ByteBuffer buffer) {
         IOHelper.putString(buffer, message);
     }
 }

@@ -3,6 +3,7 @@ package io.github.winnpixie.wun.shared;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public class IOHelper {
     private IOHelper() {
@@ -25,12 +26,22 @@ public class IOHelper {
         return result;
     }
 
+    public static void putUUID(ByteBuffer buffer, UUID uuid) {
+        buffer.putLong(uuid.getMostSignificantBits());
+        buffer.putLong(uuid.getLeastSignificantBits());
+    }
+
+    public static UUID getUUID(ByteBuffer buffer) {
+        return new UUID(buffer.getLong(), buffer.getLong());
+    }
+
     public static void putString(ByteBuffer buffer, String value) {
         putString(buffer, value, StandardCharsets.UTF_8);
     }
 
     public static void putString(ByteBuffer buffer, String value, Charset charset) {
         byte[] data = value.getBytes(charset);
+
         buffer.putInt(data.length);
         buffer.put(data);
     }
